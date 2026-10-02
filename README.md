@@ -1,137 +1,53 @@
-JK-BMS to VinFast Klara S1 CAN Bus Bridge
+# JK-BMS to VinFast Klara S1 CAN Bus Bridge
 
-Mã nguồn và hướng dẫn kết nối JK-BMS sang hệ thống CAN Bus của xe máy điện VinFast Klara S1 sử dụng vi điều khiển STM32F103C8T6 (Blue Pill) và module MCP2515 CAN SPI.
+Mã nguồn và hướng dẫn kết nối **JK-BMS** sang hệ thống **CAN Bus của xe máy điện VinFast Klara S1** sử dụng vi điều khiển **STM32F103C8T6 (Blue Pill)** và module **MCP2515 CAN SPI**.
 
-Dự án này giúp thay thế pin nguyên bản của VinFast Klara S1 bằng khối pin độ dùng mạch JK-BMS, cho phép xe nhận diện đầy đủ thông số (SOC, Điện áp, Dòng điện, Nhiệt độ, Điện áp từng Cell) và hỗ trợ cắm sạc bình thường.
+Dự án này giúp thay thế pin nguyên bản của VinFast Klara S1 bằng khối pin độ dùng mạch **JK-BMS**, cho phép xe nhận diện đầy đủ thông số (SOC, Điện áp, Dòng điện, Nhiệt độ, Điện áp từng Cell) và **hỗ trợ cắm sạc bình thường**.
 
-🛠️ 1. Sơ đồ đấu nối phần cứng (Hardware Wiring)
+---
 
-A. Kết nối STM32F103 (Blue Pill) <-> Module MCP2515 (CAN SPI)
+## 🛠️ 1. Sơ đồ đấu nối phần cứng (Hardware Wiring)
 
-Chân MCP2515
+### A. Kết nối STM32F103 (Blue Pill) <-> Module MCP2515 (CAN SPI)
+| Chân MCP2515 | Chân STM32F103 | Ghi chú |
+| :--- | :--- | :--- |
+| **VCC** | **5V** | Nguồn 5V cho MCP2515 |
+| **GND** | **GND** | Nối đất chung |
+| **CS** | **PA4** | Chip Select SPI |
+| **SCK** | **PA5** | SPI1 Clock |
+| **SO (MISO)** | **PA6** | SPI1 MISO |
+| **SI (MOSI)** | **PA7** | SPI1 MOSI |
+| **INT** | Không nối (hoặc PA1) | Tùy chọn ngắt |
 
-Chân STM32F103
+> **Mạng CAN Xe:** Nối `CAN_H` và `CAN_L` của MCP2515 vào cổng CAN Bus trên xe Klara S1.
 
-Ghi chú
-
-VCC
-
-5V
-
-Nguồn 5V cho MCP2515
-
-GND
-
-GND
-
-Nối đất chung
-
-CS
-
-PA4
-
-Chip Select SPI
-
-SCK
-
-PA5
-
-SPI1 Clock
-
-SO (MISO)
-
-PA6
-
-SPI1 MISO
-
-SI (MOSI)
-
-PA7
-
-SPI1 MOSI
-
-INT
-
-Không nối (hoặc PA1)
-
-Tùy chọn ngắt
-
-Mạng CAN Xe: Nối CAN_H và CAN_L của MCP2515 vào cổng CAN Bus trên xe Klara S1.
-
-B. Kết nối STM32F103 <-> JK-BMS (UART Serial1)
-
+### B. Kết nối STM32F103 <-> JK-BMS (UART Serial1)
 Sử dụng mạch chuyển đổi mức tín hiệu (MAX3222 / TTL-RS485/UART) nối từ cổng UART của JK-BMS sang STM32:
 
-Chân JK-BMS Adapter
+| Chân JK-BMS Adapter | Chân STM32F103 | Ghi chú |
+| :--- | :--- | :--- |
+| **TX** | **PA10 (RX1)** | Nhận dữ liệu UART từ JK-BMS |
+| **RX** | **PA9 (TX1)** | Gửi dữ liệu UART sang JK-BMS |
+| **GND** | **GND** | Mass chung |
 
-Chân STM32F103
+---
 
-Ghi chú
+## 📑 2. Danh sách CAN ID Klara S1 (Reverse Engineered)
 
-TX
+| CAN ID | Chức năng | Chu kỳ / Ghi chú |
+| :--- | :--- | :--- |
+| **`0x303`** | BMS Heartbeat & Relay status | 100ms (Rolling Counter Byte 0) |
+| **`0x309`** | Điện áp tổng, Dòng xả/sạc, Trạng thái sạc | Cập nhật theo dữ liệu BMS |
+| **`0x30E`** | Nhiệt độ cảm biến (3 cảm biến) | Cập nhật theo dữ liệu BMS |
+| **`0x310` - `0x314`** | Điện áp chi tiết Cell 1 đến Cell 20 | Chia làm 4 block CAN |
+| **`0x326`** | Gateway Heartbeat | 100ms |
+| **`0x340`, `0x342`, `0x343`, `0x33F`** | Khung truyền tín hiệu nhận sạc (Charging Status) | Kích hoạt khi dòng điện > 0A |
 
-PA10 (RX1)
+---
 
-Nhận dữ liệu UART từ JK-BMS
+## 💻 3. Mã nguồn Arduino (STM32F1)
 
-RX
-
-PA9 (TX1)
-
-Gửi dữ liệu UART sang JK-BMS
-
-GND
-
-GND
-
-Mass chung
-
-📑 2. Danh sách CAN ID Klara S1 (Reverse Engineered)
-
-CAN ID
-
-Chức năng
-
-Chu kỳ / Ghi chú
-
-0x303
-
-BMS Heartbeat & Relay status
-
-100ms (Rolling Counter Byte 0)
-
-0x309
-
-Điện áp tổng, Dòng xả/sạc, Trạng thái sạc
-
-Cập nhật theo dữ liệu BMS
-
-0x30E
-
-Nhiệt độ cảm biến (3 cảm biến)
-
-Cập nhật theo dữ liệu BMS
-
-0x310 - 0x314
-
-Điện áp chi tiết Cell 1 đến Cell 20
-
-Chia làm 4 block CAN
-
-0x326
-
-Gateway Heartbeat
-
-100ms
-
-0x340, 0x342, 0x343, 0x33F
-
-Khung truyền tín hiệu nhận sạc (Charging Status)
-
-Kích hoạt khi dòng điện > 0A
-
-💻 3. Mã nguồn Arduino (STM32F1)
-
+```cpp
 /*
  * JK_BMS_to_Klara_CAN.ino
  * STM32F1 (Blue Pill) - UART read JK-BMS (MAX3222) → CAN (MCP2515)
@@ -420,14 +336,16 @@ void loop() {
 
     delay(5);
 }
+```
 
+---
 
-☕ Ủng hộ tác giả (Donate)
+## ☕ Ủng hộ tác giả (Donate)
 
 Nếu dự án này giúp ích cho bạn trong việc đóng pin và giải mã thành công xe VinFast Klara S1, bạn có thể ủng hộ mình một ly cà phê qua tài khoản bên dưới:
 
-Chủ tài khoản: TRAN DUY THO
+* **Chủ tài khoản:** TRAN DUY THO
+* **Số tài khoản:** `3013 2838 69`
+* **Ngân hàng:** Techcombank
 
-Số tài khoản: 3013 2838 69
-
-Ngân hàng: Techcombank
+![Mã QR Donate Techcombank](./qr_donate.png)
