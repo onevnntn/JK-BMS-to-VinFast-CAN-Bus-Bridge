@@ -349,3 +349,4 @@ Nếu dự án này giúp ích cho bạn trong việc đóng pin và giải mã 
 * **Ngân hàng:** Techcombank
 
 ![Mã QR Donate Techcombank](./qr_donate.png)
+Dự án phục vụ mục đích nghiên cứu học thuật và tham khảo. Tác giả không chịu trách nhiệm đối với bất kỳ rủi ro, hư hỏng thiết bị hoặc mất an toàn giao thông nào phát sinh khi người dùng áp dụng thực tế
